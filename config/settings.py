@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -168,6 +170,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Auth', 'description': 'Регистрация и JWT-аутентификация'},
         {'name': 'Habits', 'description': 'CRUD для личных привычек пользователя'},
         {'name': 'Public Habits', 'description': 'Просмотр публичных привычек'},
+        {'name': 'Telegram', 'description': 'Привязка Telegram и отправка напоминаний'},
     ],
 }
 
@@ -179,3 +182,15 @@ CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_BROKER_URL = 'redis://localhost:6379/0'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', '')
+
+
+# Вызов задач
+CELERY_BEAT_SCHEDULE = {
+    'send-habit-reminders-every-minute': {
+        'task': 'habits.tasks.send_habit_reminders',
+        'schedule': crontab(),  # каждую минуту
+    },
+}

@@ -1,12 +1,12 @@
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
 from rest_framework import viewsets
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.serializers import CharField, EmailField, Serializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from users.models import User
-from rest_framework_simplejwt.views import TokenObtainPairView
 from users.serializers import CustomTokenObtainPairSerializer, UserSerializer
-from rest_framework_simplejwt.views import TokenRefreshView
 
 
 class TokenRefreshRequestSerializer(Serializer):
@@ -120,3 +120,4 @@ class CustomTokenObtainPairView(TokenObtainPairView):
 )
 class CustomTokenRefreshView(TokenRefreshView):
     pass
+
