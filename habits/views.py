@@ -61,9 +61,23 @@ from habits.serializers import HabitSerializer
         description="Возвращает одну привычку текущего пользователя.",
         responses={200: HabitSerializer},
     ),
-    update=extend_schema(tags=["Habits"], summary="Обновить привычку", request=HabitSerializer, responses={200: HabitSerializer}),
-    partial_update=extend_schema(tags=["Habits"], summary="Частично обновить привычку", request=HabitSerializer, responses={200: HabitSerializer}),
-    destroy=extend_schema(tags=["Habits"], summary="Удалить привычку", responses={204: OpenApiResponse(description="Привычка удалена.")}),
+    update=extend_schema(
+        tags=["Habits"],
+        summary="Обновить привычку",
+        request=HabitSerializer,
+        responses={200: HabitSerializer},
+    ),
+    partial_update=extend_schema(
+        tags=["Habits"],
+        summary="Частично обновить привычку",
+        request=HabitSerializer,
+        responses={200: HabitSerializer},
+    ),
+    destroy=extend_schema(
+        tags=["Habits"],
+        summary="Удалить привычку",
+        responses={204: OpenApiResponse(description="Привычка удалена.")},
+    ),
 )
 class HabitViewSet(viewsets.ModelViewSet):
     serializer_class = HabitSerializer

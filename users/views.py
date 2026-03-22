@@ -1,11 +1,9 @@
-from rest_framework import viewsets
-from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, extend_schema_view, inline_serializer
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from drf_spectacular.utils import OpenApiExample, OpenApiResponse, extend_schema, inline_serializer
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
 from rest_framework.serializers import CharField, EmailField, Serializer
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from users.models import User
 from users.serializers import CustomTokenObtainPairSerializer, UserSerializer
 
 
@@ -17,53 +15,27 @@ class TokenRefreshResponseSerializer(Serializer):
     access = CharField()
 
 
-@extend_schema_view(
-    list=extend_schema(
-        tags=["Auth"],
-        summary="Список пользователей",
-        description="Возвращает список зарегистрированных пользователей. Эндпоинт доступен только авторизованным пользователям.",
-        responses={200: UserSerializer(many=True)},
-    ),
-    create=extend_schema(
-        tags=["Auth"],
-        summary="Регистрация пользователя",
-        description="Создает нового пользователя и возвращает его базовые данные.",
-        request=UserSerializer,
-        responses={201: UserSerializer},
-        examples=[
-            OpenApiExample(
-                "Пример регистрации",
-                value={
-                    "username": "ivan",
-                    "email": "ivan@example.com",
-                    "password": "SecurePass123!",
-                },
-                request_only=True,
-            )
-        ],
-    ),
-    retrieve=extend_schema(
-        tags=["Auth"],
-        summary="Детали пользователя",
-        description="Возвращает данные конкретного пользователя.",
-        responses={200: UserSerializer},
-    ),
-    update=extend_schema(tags=["Auth"], summary="Обновить пользователя"),
-    partial_update=extend_schema(tags=["Auth"], summary="Частично обновить пользователя"),
-    destroy=extend_schema(tags=["Auth"], summary="Удалить пользователя"),
+@extend_schema(
+    tags=["Auth"],
+    summary="Регистрация пользователя",
+    description="Создает нового пользователя и возвращает его базовые данные.",
+    request=UserSerializer,
+    responses={201: UserSerializer},
+    examples=[
+        OpenApiExample(
+            "Пример регистрации",
+            value={
+                "username": "ivan",
+                "email": "ivan@example.com",
+                "password": "SecurePass123!",
+            },
+            request_only=True,
+        )
+    ],
 )
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
+class UserCreateAPIView(generics.CreateAPIView):
     serializer_class = UserSerializer
-
-    def get_permissions(self):
-        if self.action == "create":
-            # Создание пользователя доступно всем (регистрация)
-            self.permission_classes = [AllowAny]
-        else:
-            # Все остальные операции требуют авторизации
-            self.permission_classes = [IsAuthenticated]
-        return super().get_permissions()
+    permission_classes = [AllowAny]
 
 
 @extend_schema(
@@ -99,6 +71,7 @@ class UserViewSet(viewsets.ModelViewSet):
     ],
 )
 class CustomTokenObtainPairView(TokenObtainPairView):
+    permission_classes = [AllowAny]
     serializer_class = CustomTokenObtainPairSerializer
 
 
@@ -119,5 +92,4 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     ],
 )
 class CustomTokenRefreshView(TokenRefreshView):
-    pass
-
+    permission_classes = [AllowAny]

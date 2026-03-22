@@ -20,6 +20,8 @@ class UserSerializer(serializers.ModelSerializer):
             password=validated_data["password"],
         )
         return user
+
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """JWT-аутентификация по email вместо username."""
 

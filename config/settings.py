@@ -10,10 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
-from pathlib import Path
 from datetime import timedelta
-import os
+from pathlib import Path
+
 from celery.schedules import crontab
+from decouple import Csv, config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,12 +24,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1cfusaylpr7=ij=x%8)a+19$-$g&!v3oe39e!un0gmko19g*pl'
+SECRET_KEY = config(
+    "SECRET_KEY",
+    default="django-insecure-1cfusaylpr7=ij=x%8)a+19$-$g&!v3oe39e!un0gmko19g*pl",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config("DEBUG", default=True, cast=bool)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
 
 # Application definition
@@ -41,11 +45,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Third pary apps
-    'django_celery_beat',
-    'drf_spectacular',
+    # Third party apps
+    "corsheaders",
+    "django_celery_beat",
+    "drf_spectacular",
     "rest_framework",
-    'rest_framework_simplejwt',
+    "rest_framework_simplejwt",
     "django_filters",
 
     # Local apps
@@ -54,28 +59,28 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -89,8 +94,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
 
@@ -117,9 +122,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = config("TIME_ZONE", default="UTC")
 
 USE_I18N = True
 
@@ -129,68 +134,78 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = "static/"
 
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Custom project settings
 AUTH_USER_MODEL = "users.User"
 
 # DRF settings
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend',
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
     ],
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
     ],
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Auth settings
-# Для дебага на дев стенде время жизни = 1 день
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=1)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
+# CORS settings
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:3000,http://127.0.0.1:3000",
+    cast=Csv(),
+)
+
+# ------------------------------------------------------------------------
 # Docs settings
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Atomic Habits Tracker API',
-    'DESCRIPTION': 'API для регистрации пользователей, JWT-аутентификации и управления привычками с публичным каталогом.',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'COMPONENT_SPLIT_REQUEST': True,
-    'TAGS': [
-        {'name': 'Auth', 'description': 'Регистрация и JWT-аутентификация'},
-        {'name': 'Habits', 'description': 'CRUD для личных привычек пользователя'},
-        {'name': 'Public Habits', 'description': 'Просмотр публичных привычек'},
-        {'name': 'Telegram', 'description': 'Привязка Telegram и отправка напоминаний'},
+    "TITLE": "Atomic Habits Tracker API",
+    "DESCRIPTION": (
+        "API для регистрации пользователей, JWT-аутентификации и управления привычками "
+        "с публичным каталогом."
+    ),
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "TAGS": [
+        {"name": "Auth", "description": "Регистрация и JWT-аутентификация"},
+        {"name": "Habits", "description": "CRUD для личных привычек пользователя"},
+        {"name": "Public Habits", "description": "Просмотр публичных привычек"},
+        {"name": "Telegram", "description": "Отправка напоминаний в Telegram"},
     ],
 }
 
-#------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Celery Configuration Options
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60
-CELERY_BROKER_URL = 'redis://localhost:6379/0'
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = config("CELERY_RESULT_BACKEND", default="redis://localhost:6379/0")
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
-TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
-TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', '')
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_BOT_USERNAME = config("TELEGRAM_BOT_USERNAME", default="")
 
 
 # Вызов задач
 CELERY_BEAT_SCHEDULE = {
-    'send-habit-reminders-every-minute': {
-        'task': 'habits.tasks.send_habit_reminders',
-        'schedule': crontab(),  # каждую минуту
+    "send-habit-reminders-every-minute": {
+        "task": "habits.tasks.send_habit_reminders",
+        "schedule": crontab(),
     },
 }
