@@ -3,7 +3,6 @@ from rest_framework.routers import DefaultRouter
 
 from users.apps import UsersConfig
 from users.views import *
-from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 
 app_name = UsersConfig.name
@@ -15,7 +14,7 @@ urlpatterns = [
     path('users/', include(router.urls)),
     path(
         "token/refresh/",
-        TokenRefreshView.as_view(permission_classes=(AllowAny,)),
+        CustomTokenRefreshView.as_view(permission_classes=(AllowAny,)),
         name="token_refresh",
     ),
     path(
