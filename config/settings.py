@@ -160,9 +160,15 @@ SIMPLE_JWT = {
 # Docs settings
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Atomic Habits Tracker API',
-    'DESCRIPTION': 'API для привычками,',
+    'DESCRIPTION': 'API для регистрации пользователей, JWT-аутентификации и управления привычками с публичным каталогом.',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'Auth', 'description': 'Регистрация и JWT-аутентификация'},
+        {'name': 'Habits', 'description': 'CRUD для личных привычек пользователя'},
+        {'name': 'Public Habits', 'description': 'Просмотр публичных привычек'},
+    ],
 }
 
 #------------------------------------------------------------------------
