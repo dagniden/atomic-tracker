@@ -1,0 +1,21 @@
+.git
+.github
+.idea
+.obsidian
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.coverage
+coverage.xml
+htmlcov
+db.sqlite3
+media
+staticfiles
+Трекер привычек_files
+Требования.html

@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.13"
 django = "^6.0.3"
+psycopg = {version = "^3.2.10", extras = ["binary"]}
 python-dateutil = "^2.9.0.post0"
 redis = "^7.3.0"
 django-celery-beat = "^2.9.0"
