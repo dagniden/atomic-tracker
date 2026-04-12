@@ -1,0 +1,161 @@
+name: CI/CD
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: atomic_tracker
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d atomic_tracker"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      SECRET_KEY: ci-secret-key
+      DEBUG: False
+      DB_ENGINE: postgres
+      DB_NAME: atomic_tracker
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      TIME_ZONE: UTC
+      CORS_ALLOWED_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      CSRF_TRUSTED_ORIGINS: http://localhost,http://127.0.0.1
+      CELERY_BROKER_URL: redis://127.0.0.1:6379/0
+      CELERY_RESULT_BACKEND: redis://127.0.0.1:6379/0
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Install Poetry
+        run: pip install poetry==2.2.1
+
+      - name: Cache Poetry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pypoetry
+            ~/.cache/pip
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: python -m poetry install --with lint --no-interaction --no-root
+
+      - name: Run migrations
+        run: python -m poetry run python manage.py migrate
+
+      - name: Run flake8
+        run: python -m poetry run flake8 . --exclude=.git,__pycache__,.venv,migrations
+
+      - name: Run tests
+        run: python -m poetry run python manage.py test
+
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: test-and-lint
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker compose build
+
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs:
+      - test-and-lint
+      - docker-build
+    if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master') && github.actor != 'nektos/act'
+    env:
+      SSH_HOST: ${{ secrets.SERVER_IP }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+      SSH_OPTS: -o StrictHostKeyChecking=no
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install deploy tools
+        run: |
+          if command -v sudo >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y rsync openssh-client
+          else
+            apt-get update
+            apt-get install -y rsync openssh-client
+          fi
+
+      - name: Configure SSH key
+        env:
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          raw_key = os.environ["SSH_KEY"]
+          normalized_key = raw_key.replace("\\r\\n", "\n").replace("\\n", "\n")
+          key_path = Path.home() / ".ssh" / "deploy_key"
+          key_path.write_text(normalized_key)
+          key_path.chmod(0o600)
+          PY
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/deploy_key
+
+      - name: Copy project files to server
+        run: |
+          ssh $SSH_OPTS $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_DIR"
+          rsync -avz --delete --exclude '.git' --exclude '.github' --exclude '.venv' --exclude '__pycache__' --exclude 'htmlcov' --exclude '.secrets' --exclude '.actrc' -e "ssh $SSH_OPTS" . $SSH_USER@$SSH_HOST:$DEPLOY_DIR
+
+      - name: Deploy on server
+        run: |
+          ssh $SSH_OPTS $SSH_USER@$SSH_HOST "bash -se" << EOF
+            cd "$DEPLOY_DIR"
+
+            docker compose up -d --build --remove-orphans
+            docker compose ps
+          EOF
